@@ -11,10 +11,15 @@ def make_calc_module():
     """
     Return LLVM Module object that contains a function `add`
     that returns the result of adding two doubles.
+
+    This module defines `add` function that will be referenced
+    to in `run_module`. Notice the defining linkage here and
+    declaration linkage in the referencing module.
     """
     calc_module = ir.Module(name="calc_module")
     f_add_type = ir.FunctionType(double_t, [double_t, double_t])
     f_add = ir.Function(calc_module, f_add_type, name="add")
+    f_add.linkage = 'linkonce_odr'
     f_add_block = f_add.append_basic_block(name="f_add_block")
     builder = ir.IRBuilder(f_add_block)
     x1 = f_add.args[0]
@@ -30,7 +35,7 @@ calc_module_str_ref = """; ModuleID = "calc_module"
 target triple = "unknown-unknown-unknown"
 target datalayout = ""
 
-define double @"add"(double %".1", double %".2")
+define linkonce_odr double @"add"(double %".1", double %".2")
 {
 f_add_block:
   %"sum_" = fadd double %".1", %".2"
@@ -48,6 +53,7 @@ def make_runner_module():
     runner_module = ir.Module(name="runner")
     f_add_type = ir.FunctionType(double_t, [double_t, double_t])
     f_add_declare = ir.Function(runner_module, f_add_type, name="add")
+    f_add_declare.linkage = 'external'
     f_run_type = ir.FunctionType(double_t, [double_t, double_t])
     f_run = ir.Function(runner_module, f_run_type, name="run")
     f_run_block = f_run.append_basic_block(name="f_run_block")
@@ -66,7 +72,7 @@ runner_module_str_ref = """; ModuleID = "runner"
 target triple = "unknown-unknown-unknown"
 target datalayout = ""
 
-declare double @"add"(double %".1", double %".2")
+declare external double @"add"(double %".1", double %".2")
 
 define double @"run"(double %".1", double %".2")
 {
@@ -90,7 +96,7 @@ f_run_block:
   ret double %res_
 }
 
-define double @add(double %.1, double %.2) {
+define linkonce_odr double @add(double %.1, double %.2) {
 f_add_block:
   %sum_ = fadd double %.1, %.2
   ret double %sum_
