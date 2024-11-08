@@ -1,3 +1,4 @@
+import ctypes
 import llvmlite.binding as ll
 import llvmlite.ir as ir
 
@@ -85,7 +86,7 @@ f_run_block:
 assert runner_module_str == runner_module_str_ref
 
 
-llvm_runner_module_ref = """; ModuleID = '<string>'
+llvm_runner_static_ref = """; ModuleID = '<string>'
 source_filename = "<string>"
 target triple = "unknown-unknown-unknown"
 
@@ -104,16 +105,23 @@ f_add_block:
 """
 
 
-def compile_run_func():
+def ll_initialize():
     ll.initialize()
     ll.initialize_native_target()
     ll.initialize_native_asmprinter()
+
+
+def compile_run_func_static():
+    """
+    Statically link calc_module and runner_module
+    """
+    ll_initialize()
 
     llvm_calc_module = ll.parse_assembly(calc_module_str)
     llvm_runner_module = ll.parse_assembly(runner_module_str)
 
     llvm_runner_module.link_in(llvm_calc_module)
-    assert str(llvm_runner_module) == llvm_runner_module_ref
+    assert str(llvm_runner_module) == llvm_runner_static_ref
 
     llvm_runner_module.verify()
 
@@ -123,7 +131,7 @@ def compile_run_func():
     return engine
 
 
-engine = compile_run_func()
+engine_run_static = compile_run_func_static()
 
 
 def get_run_from_ptr(engine):
@@ -132,10 +140,58 @@ def get_run_from_ptr(engine):
     return run_fn
 
 
-run_fn = get_run_from_ptr(engine)
+run_static_fn = get_run_from_ptr(engine_run_static)
+
+
+llvm_runner_dynamic_ref = """; ModuleID = '<string>'
+source_filename = "<string>"
+target triple = "unknown-unknown-unknown"
+
+declare double @add(double, double)
+
+define double @run(double %.1, double %.2) {
+f_run_block:
+  %add_x1_x2 = call double @add(double %.1, double %.2)
+  %res_ = fmul double %add_x1_x2, 3.000000e+00
+  ret double %res_
+}
+"""
+
+
+def get_dy_calc_p():
+    libcalc = ctypes.CDLL('./libcalc.dylib')
+    add_f = libcalc.add
+    add_p = ctypes.cast(add_f, ctypes.c_void_p).value
+    return add_p
+
+
+def compile_run_func_dynamic():
+    """
+    Dynamically link calc_module and runner_module
+    """
+    add_p = get_dy_calc_p()
+    ll.add_symbol("add", add_p)
+
+    ll_initialize()
+
+    llvm_runner_module = ll.parse_assembly(runner_module_str)
+    assert str(llvm_runner_module) == llvm_runner_dynamic_ref
+
+    llvm_runner_module.verify()
+
+    target_machine = ll.Target.from_default_triple().create_target_machine()
+    engine = ll.create_mcjit_compiler(llvm_runner_module, target_machine)
+    engine.finalize_object()
+    return engine
+
+
+engine_run_dynamic = compile_run_func_dynamic()
+
+run_dynamic_fn = get_run_from_ptr(engine_run_dynamic)
 
 
 if __name__ == '__main__':
     x1 = 3.14
     x2 = 1.41
-    assert abs(run_fn(x1, x2) - 3 * (x1 + x2)) < 1e-15
+    assert abs(run_static_fn(x1, x2) - 3 * (x1 + x2)) < 1e-15
+    assert abs(run_dynamic_fn(x1, x2) - 3 * (x1 + x2)) < 1e-15
