@@ -3,13 +3,25 @@ import numba
 
 from llvmlite import ir
 from numba.core import cgutils
+from numba.experimental.function_type import _get_wrapper_address
 from numba.extending import intrinsic
 
-from numba_linking.make_llvm import double_t, get_dy_calc_p
+from numba_linking.make_llvm import double_t
 
 
-add_p = get_dy_calc_p()
+add_sig = numba.float64(numba.float64, numba.float64)
+
+
+@numba.njit(add_sig)
+def add_prototype(x, y):
+    return x + y
+
+
+add_p = _get_wrapper_address(add_prototype, add_sig)
+# add_p = get_dy_calc_p()
+
 ll.add_symbol("add", add_p)
+
 
 @intrinsic
 def _add(typingctx, x_t, y_t):
@@ -37,11 +49,11 @@ target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-darwin23.2.0"
 
 @.const.add = internal constant [4 x i8] c"add\00"
-@_ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
-@".const.missing Environment: _ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd" = internal constant [96 x i8] c"missing Environment: _ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd\00"
+@_ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
+@".const.missing Environment: _ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd" = internal constant [96 x i8] c"missing Environment: _ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd\00"
 @PyExc_RuntimeError = external global i8
 
-define i32 @_ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* noalias nocapture writeonly %retptr, { i8*, i32, i8*, i8*, i32 }** noalias nocapture readnone %excinfo, double %arg.x, double %arg.y) local_unnamed_addr {
+define i32 @_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* noalias nocapture writeonly %retptr, { i8*, i32, i8*, i8*, i32 }** noalias nocapture readnone %excinfo, double %arg.x, double %arg.y) local_unnamed_addr {
 entry:
   %.6 = tail call double @add(double %arg.x, double %arg.y)
   store double %.6, double* %retptr, align 8
@@ -50,7 +62,7 @@ entry:
 
 declare double @add(double, double) local_unnamed_addr
 
-define i8* @_ZN7cpython8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(i8* nocapture readnone %py_closure, i8* %py_args, i8* nocapture readnone %py_kws) local_unnamed_addr {
+define i8* @_ZN7cpython8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(i8* nocapture readnone %py_closure, i8* %py_args, i8* nocapture readnone %py_kws) local_unnamed_addr {
 entry:
   %.5 = alloca i8*, align 8
   %.6 = alloca i8*, align 8
@@ -64,12 +76,12 @@ common.ret:                                       ; preds = %entry.endif.endif.e
   ret i8* %common.ret.op
 
 entry.endif:                                      ; preds = %entry
-  %.12 = load i8*, i8** @_ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd, align 8
+  %.12 = load i8*, i8** @_ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd, align 8
   %.17 = icmp eq i8* %.12, null
   br i1 %.17, label %entry.endif.if, label %entry.endif.endif, !prof !0
 
 entry.endif.if:                                   ; preds = %entry.endif
-  call void @PyErr_SetString(i8* nonnull @PyExc_RuntimeError, i8* getelementptr inbounds ([96 x i8], [96 x i8]* @".const.missing Environment: _ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd", i64 0, i64 0))
+  call void @PyErr_SetString(i8* nonnull @PyExc_RuntimeError, i8* getelementptr inbounds ([96 x i8], [96 x i8]* @".const.missing Environment: _ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd", i64 0, i64 0))
   br label %common.ret
 
 entry.endif.endif:                                ; preds = %entry.endif
@@ -92,7 +104,7 @@ entry.endif.endif.endif:                          ; preds = %entry.endif.endif
 
 entry.endif.endif.endif.endif:                    ; preds = %entry.endif.endif.endif
   store double 0.000000e+00, double* %.39, align 8
-  %.43 = call i32 @_ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.39, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.23, double %.32) #0
+  %.43 = call i32 @_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.39, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.23, double %.32) #0
   %.53 = load double, double* %.39, align 8
   %.58 = call i8* @PyFloat_FromDouble(double %.53)
   br label %common.ret
@@ -112,11 +124,11 @@ declare i8* @PyErr_Occurred() local_unnamed_addr
 
 declare i8* @PyFloat_FromDouble(double) local_unnamed_addr
 
-define double @cfunc._ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double %.1, double %.2) local_unnamed_addr {
+define double @cfunc._ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double %.1, double %.2) local_unnamed_addr {
 entry:
   %.4 = alloca double, align 8
   store double 0.000000e+00, double* %.4, align 8
-  %.8 = call i32 @_ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.4, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.1, double %.2) #0
+  %.8 = call i32 @_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.4, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.1, double %.2) #0
   %.18 = load double, double* %.4, align 8
   ret double %.18
 }
@@ -134,12 +146,12 @@ target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-darwin23.2.0"
 
 @.const.run = internal constant [4 x i8] c"run\00"
-@_ZN08NumbaEnv8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
-@".const.missing Environment: _ZN08NumbaEnv8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd" = internal constant [96 x i8] c"missing Environment: _ZN08NumbaEnv8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd\00"
-@_ZN08NumbaEnv8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
+@_ZN08NumbaEnv8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
+@".const.missing Environment: _ZN08NumbaEnv8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd" = internal constant [96 x i8] c"missing Environment: _ZN08NumbaEnv8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd\00"
+@_ZN08NumbaEnv8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd = common local_unnamed_addr global i8* null
 @PyExc_RuntimeError = external global i8
 
-define i32 @_ZN8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* noalias nocapture writeonly %retptr, { i8*, i32, i8*, i8*, i32 }** noalias nocapture readnone %excinfo, double %arg.x, double %arg.y) local_unnamed_addr {
+define i32 @_ZN8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* noalias nocapture writeonly %retptr, { i8*, i32, i8*, i8*, i32 }** noalias nocapture readnone %excinfo, double %arg.x, double %arg.y) local_unnamed_addr {
 common.ret:
   %.6.i = tail call double @add(double %arg.x, double %arg.y), !noalias !0
   %.33 = fmul double %.6.i, 3.140000e+00
@@ -147,7 +159,7 @@ common.ret:
   ret i32 0
 }
 
-define i8* @_ZN7cpython8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(i8* nocapture readnone %py_closure, i8* %py_args, i8* nocapture readnone %py_kws) local_unnamed_addr {
+define i8* @_ZN7cpython8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(i8* nocapture readnone %py_closure, i8* %py_args, i8* nocapture readnone %py_kws) local_unnamed_addr {
 entry:
   %.5 = alloca i8*, align 8
   %.6 = alloca i8*, align 8
@@ -161,12 +173,12 @@ common.ret:                                       ; preds = %entry.endif.endif.e
   ret i8* %common.ret.op
 
 entry.endif:                                      ; preds = %entry
-  %.12 = load i8*, i8** @_ZN08NumbaEnv8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd, align 8
+  %.12 = load i8*, i8** @_ZN08NumbaEnv8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd, align 8
   %.17 = icmp eq i8* %.12, null
   br i1 %.17, label %entry.endif.if, label %entry.endif.endif, !prof !3
 
 entry.endif.if:                                   ; preds = %entry.endif
-  call void @PyErr_SetString(i8* nonnull @PyExc_RuntimeError, i8* getelementptr inbounds ([96 x i8], [96 x i8]* @".const.missing Environment: _ZN08NumbaEnv8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd", i64 0, i64 0))
+  call void @PyErr_SetString(i8* nonnull @PyExc_RuntimeError, i8* getelementptr inbounds ([96 x i8], [96 x i8]* @".const.missing Environment: _ZN08NumbaEnv8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd", i64 0, i64 0))
   br label %common.ret
 
 entry.endif.endif:                                ; preds = %entry.endif
@@ -189,7 +201,7 @@ entry.endif.endif.endif:                          ; preds = %entry.endif.endif
 
 entry.endif.endif.endif.endif:                    ; preds = %entry.endif.endif.endif
   store double 0.000000e+00, double* %.39, align 8
-  %.43 = call i32 @_ZN8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.39, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.23, double %.32) #0
+  %.43 = call i32 @_ZN8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.39, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.23, double %.32) #0
   %.53 = load double, double* %.39, align 8
   %.58 = call i8* @PyFloat_FromDouble(double %.53)
   br label %common.ret
@@ -209,11 +221,11 @@ declare i8* @PyErr_Occurred() local_unnamed_addr
 
 declare i8* @PyFloat_FromDouble(double) local_unnamed_addr
 
-define double @cfunc._ZN8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double %.1, double %.2) local_unnamed_addr {
+define double @cfunc._ZN8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double %.1, double %.2) local_unnamed_addr {
 entry:
   %.4 = alloca double, align 8
   store double 0.000000e+00, double* %.4, align 8
-  %.8 = call i32 @_ZN8__main__3runB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.4, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.1, double %.2) #0
+  %.8 = call i32 @_ZN8__main__3runB2v3B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd(double* nonnull %.4, { i8*, i32, i8*, i8*, i32 }** nonnull undef, double %.1, double %.2) #0
   %.18 = load double, double* %.4, align 8
   ret double %.18
 }
@@ -223,8 +235,8 @@ declare double @add(double, double) local_unnamed_addr
 attributes #0 = { noinline }
 
 !0 = !{!1}
-!1 = distinct !{!1, !2, !"_ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd: %retptr"}
-!2 = distinct !{!2, !"_ZN8__main__3addB2v1B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd"}
+!1 = distinct !{!1, !2, !"_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd: %retptr"}
+!2 = distinct !{!2, !"_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd"}
 !3 = !{!"branch_weights", i32 1, i32 99}
 !4 = !{!"branch_weights", i32 99, i32 1}
 """
