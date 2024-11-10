@@ -26,7 +26,18 @@ def calculate2(x, y):
 
 @numba.njit(calculate_sig)
 def run2(x, y):
-    return 3.14 * calculate(x, y)
+    return 3.14 * calculate2(x, y)
+
+
+@bind_jit(calculate_sig, cache=True)
+@numba.njit
+def calculate3(x, y):
+    return x + y + egg
+
+
+@numba.njit(calculate_sig)
+def run3(x, y):
+    return 3.14 * calculate3(x, y)
 
 
 def test_njit():
@@ -44,9 +55,16 @@ def test_bind_jit():
     x2 = 1.2
     assert abs(run2(x1, x2) - 3.14 * (x1 + x2 + egg)) < 1e-15
     run2_llvm = next(iter(run2.inspect_llvm().values()))
-    assert str(egg) in run2_llvm
+    assert str(egg) not in run2_llvm
+
+
+def test_bind_jit_of_njit():
+    x1 = 4.5
+    x2 = 1.2
+    assert abs(run3(x1, x2) - 3.14 * (x1 + x2 + egg)) < 1e-15
 
 
 if __name__ == '__main__':
     test_njit()
     test_bind_jit()
+    test_bind_jit_of_njit()
