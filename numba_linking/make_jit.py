@@ -12,7 +12,7 @@ from numba_linking.make_llvm import double_t
 add_sig = numba.float64(numba.float64, numba.float64)
 
 
-@numba.njit(add_sig)
+@numba.njit(add_sig, cache=True)
 def add_prototype(x, y):
     return x + y
 
@@ -341,8 +341,8 @@ attributes #0 = { noinline }
 
 
 if __name__ == '__main__':
-    add_prototype = next(iter(add_prototype.inspect_llvm().values()))
-    assert add_prototype == add_prototype_llvm_ref
+    add_prototype_llvm = next(iter(add_prototype.inspect_llvm().values()))
+    assert add_prototype_llvm == add_prototype_llvm_ref
     add_llvm = next(iter(add.inspect_llvm().values()))
     assert add_llvm == add_llvm_ref
     run_llvm = next(iter(run.inspect_llvm().values()))
