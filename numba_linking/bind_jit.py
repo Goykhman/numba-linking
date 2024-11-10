@@ -15,17 +15,22 @@ _ = ir, intrinsic
 def bind_jit(sig, **jit_options):
     if not isinstance(sig, numba.core.typing.templates.Signature):
         raise ValueError(f"Expected signature, got {sig}")
+
     def wrap(func):
         if isinstance(func, numba.core.registry.CPUDispatcher):
             func_sigs = func.nopython_signatures
-            if not len(func_sigs) == 1 or not func_sigs[0] == sig:
+            if sig not in func_sigs:
                 raise ValueError(f"Incompatible signatures {func_sigs} and {sig}")
-            func_jit = func
+            func_p = _get_wrapper_address(func, sig)
+        elif isinstance(func, numba.core.ccallback.CFunc):
+            if not func._sig == sig:
+                raise ValueError(f"Incompatible signatures {func._sig} and {sig}")
+            func_p = func.address
         elif isinstance(func, types.FunctionType):
             func_jit = numba.njit(**jit_options)(func)
+            func_p = _get_wrapper_address(func_jit, sig)
         else:
             raise ValueError(f"Unsupported {func} of type {type(func)}")
-        func_p = _get_wrapper_address(func_jit, sig)
         func_name = f"{func.__name__}"
         ll.add_symbol(func_name, func_p)
         func_args = inspect.getfullargspec(func).args
@@ -62,22 +67,3 @@ def {func_name}__({func_args_str}):
         func_wrap = globals()[f"{func_name}__"]
         return func_wrap
     return wrap
-
-
-calculate_sig = numba.float64(numba.float64, numba.float64)
-
-
-@bind_jit(calculate_sig, cache=True)
-def calculate(x, y):
-    return x + y
-
-
-@numba.njit(calculate_sig)
-def run(x, y):
-    return 3.14 * calculate(x, y)
-
-
-if __name__ == '__main__':
-    x1 = 4.5
-    x2 = 1.2
-    assert abs(run(x1, x2) - 3.14 * (x1 + x2)) < 1e-15
