@@ -13,9 +13,6 @@ _ = ir, intrinsic
 
 
 def bind_jit(sig, **jit_options):
-    import numba
-    ns = {}
-    ns['numba'] = numba
     if not isinstance(sig, numba.core.typing.templates.Signature):
         raise ValueError(f"Expected signature, got {sig}")
     def wrap(func):
@@ -37,12 +34,11 @@ def bind_jit(sig, **jit_options):
         ret_type = repr(sig.return_type)
         arg_types = [repr(arg) for arg in sig.args]
         for ty in chain([ret_type], arg_types):
-            if ty in globals():
-                ns[ty] = globals()[ty]
-            elif hasattr(numba, ty):
-                ns[ty] = getattr(numba, ty)
-            else:
-                raise RuntimeError(f"Undefined type {ty}")
+            if ty not in globals():
+                if hasattr(numba, ty):
+                    globals()[ty] = getattr(numba, ty)
+                else:
+                    raise RuntimeError(f"Undefined type")
         sig_str = f"{ret_type}({', '.join(arg_types)})"
         code_str = f"""
 @intrinsic
@@ -62,15 +58,8 @@ def {func_name}__({func_args_str}):
     return _{func_name}({func_args_str})
 """
         code_obj = compile(code_str, __file__, mode='exec')
-        from llvmlite import ir
-        from numba.core import cgutils
-        from numba.extending import intrinsic
-        ns['ir'] = ir
-        ns['intrinsic'] = intrinsic
-        ns['cgutils'] = cgutils
-        exec(code_obj, ns)
-        func_wrap = ns[f"{func_name}__"]
-        globals()[f"_{func_name}"] = ns[f"_{func_name}"]
+        exec(code_obj, globals())
+        func_wrap = globals()[f"{func_name}__"]
         return func_wrap
     return wrap
 
@@ -78,7 +67,7 @@ def {func_name}__({func_args_str}):
 calculate_sig = numba.float64(numba.float64, numba.float64)
 
 
-@bind_jit(calculate_sig)
+@bind_jit(calculate_sig, cache=True)
 def calculate(x, y):
     return x + y
 
