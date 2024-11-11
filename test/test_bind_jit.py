@@ -1,6 +1,7 @@
+import ctypes
 import numba
 
-from numba_linking.bind_jit import bind_jit
+from numba_linking.bind_jit import bind_jit, get_func_data, make_code_str
 
 
 calculate_sig = numba.float64(numba.float64, numba.float64)
@@ -64,7 +65,129 @@ def test_bind_jit_of_njit():
     assert abs(run3(x1, x2) - 3.14 * (x1 + x2 + egg)) < 1e-15
 
 
+def _assert_sub_dict(smaller, larger):
+    for k, v in smaller.items():
+        assert larger[k] == v
+
+
+sig = numba.int32(numba.int32, numba.int32)
+
+
+def aux_1(x, y):
+    return x + y
+
+
+def test_py_func():
+    func_data = get_func_data(aux_1, sig)
+    _asserts(func_data, aux_1)
+
+
+@numba.njit
+def aux_2(x, y):
+    return x + y
+
+
+def test_jit_func_1():
+    func_data = get_func_data(aux_2, sig)
+    _asserts(func_data, aux_2, assert_py_func=False)
+
+
+@numba.njit(sig)
+def aux_3(x, y):
+    return x + y
+
+
+def test_jit_func_2():
+    func_data = get_func_data(aux_3, sig)
+    _asserts(func_data, aux_3, assert_py_func=False)
+
+
+@numba.njit([numba.float64(numba.float64, numba.int64), sig])
+def aux_4(x, y):
+    return x + y
+
+
+def test_jit_func_3():
+    func_data = get_func_data(aux_4, sig)
+    _asserts(func_data, aux_4, assert_py_func=False)
+
+
+@numba.njit([numba.float64(numba.float64, numba.int64), numba.int8(numba.int8, numba.int8)])
+def aux_5(x, y):
+    return x + y
+
+
+def test_jit_func_4():
+    func_data = get_func_data(aux_5, sig)
+    _asserts(func_data, aux_5, assert_py_func=False)
+
+
+@numba.cfunc(numba.float64(numba.float64, numba.int64))
+def aux_6(x, y):
+    return x + y
+
+
+def test_jit_func_5():
+    func_data = get_func_data(aux_6, sig)
+    _asserts(func_data, aux_6, assert_py_func=False)
+
+
+@numba.cfunc(sig)
+def aux_7(x, y):
+    return x + y
+
+
+def test_jit_func_6():
+    func_data = get_func_data(aux_7, sig)
+    _asserts(func_data, aux_7, assert_py_func=False)
+
+
+def _asserts(func_data, func, assert_py_func=True):
+    _assert_sub_dict(func_data.ns, globals())
+    assert func.__name__ in func_data.func_name
+    if assert_py_func:
+        assert func_data.func_py == func
+    assert func_data.func_args_str == 'x, y'
+    aux_ = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)(func_data.func_p)
+    x1, x2 = 137, 141
+    assert aux_(x1, x2) == x1 + x2
+
+
+code_str_ref = """
+@intrinsic
+def _calculation(typingctx, x, y):
+    sig = float64(float64, int32)
+    def codegen(context, builder, signature, args):
+        func_t = ir.FunctionType(
+            context.get_value_type(sig.return_type),
+            [context.get_value_type(arg) for arg in sig.args]
+        )
+        calculation_ = cgutils.get_or_insert_function(builder.module, func_t, "calculation")
+        return builder.call(calculation_, args)
+    return sig, codegen
+
+@numba.njit
+def calculation__(x, y):
+    return _calculation(x, y)
+"""
+
+
+def test_make_code_str():
+    code_str = make_code_str("calculation", "x, y", "float64(float64, int32)")
+    assert code_str == code_str_ref
+
+
 if __name__ == '__main__':
     test_njit()
     test_bind_jit()
     test_bind_jit_of_njit()
+
+    test_py_func()
+    test_jit_func_1()
+    test_jit_func_2()
+    test_jit_func_3()
+    test_jit_func_4()
+    test_jit_func_5()
+    test_jit_func_6()
+
+    test_make_code_str()
