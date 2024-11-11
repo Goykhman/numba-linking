@@ -43,7 +43,7 @@ entry:
 
 attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn writeonly }
 attributes #1 = { noinline }
-"""
+"""  # noqa: E501
 
 
 run_llvm_ref = r"""; ModuleID = 'run'
@@ -377,15 +377,15 @@ attributes #0 = { noinline }
 !0 = !{!"branch_weights", i32 1, i32 99}
 !1 = !{i1 true}
 !2 = !{!"branch_weights", i32 99, i32 1}
-"""
+"""  # noqa: E501
 
 
 if __name__ == '__main__':
     # assert add.inspect_llvm() == add_llvm_ref
     """ This assert doesn't quite work due to dynamic entries in LLVM's instructions
-        such as @numba.dynamic.globals.###### 
-        Notice that `2.17` from `add` is absent from `run_llvm` 
-        unlike what would have happened if `add` was `njit` rather than `cfunc` 
+        such as @numba.dynamic.globals.######
+        Notice that `2.17` from `add` is absent from `run_llvm`
+        unlike what would have happened if `add` was `njit` rather than `cfunc`
         `run` cannot be cached for the same reason... """
     run_llvm = next(iter(run.inspect_llvm().values()))
     # assert run_llvm == run_llvm_ref

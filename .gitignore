@@ -4,3 +4,4 @@ venv/*
 .DS_Store
 build/*
 numba_linking.egg-info/*
+dist/*

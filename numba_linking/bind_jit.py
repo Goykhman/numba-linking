@@ -66,7 +66,7 @@ def populate_ns(ret_type: str, arg_types: typing.List[str], ns: typing.Dict):
             if hasattr(numba, ty):
                 ns[ty] = getattr(numba, ty)
             else:
-                raise RuntimeError(f"Undefined type")
+                raise RuntimeError("Undefined type")
 
 
 func_sfx = '__'

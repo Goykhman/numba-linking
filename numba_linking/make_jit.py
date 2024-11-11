@@ -26,6 +26,7 @@ ll.add_symbol("add", add_p)
 @intrinsic
 def _add(typingctx, x_t, y_t):
     sig = numba.types.float64(x_t, y_t)
+
     def codegen(context, builder, signature, args):
         add_t = ir.FunctionType(double_t, (double_t, double_t))
         add_ = cgutils.get_or_insert_function(builder.module, add_t, "add")
@@ -138,7 +139,7 @@ attributes #1 = { noinline }
 
 !0 = !{!"branch_weights", i32 1, i32 99}
 !1 = !{!"branch_weights", i32 99, i32 1}
-"""
+"""  # noqa: E501
 
 
 add_llvm_ref = r"""; ModuleID = 'add'
@@ -235,7 +236,7 @@ attributes #0 = { noinline }
 
 !0 = !{!"branch_weights", i32 1, i32 99}
 !1 = !{!"branch_weights", i32 99, i32 1}
-"""
+"""  # noqa: E501
 
 
 run_llvm_ref = r"""; ModuleID = 'run'
@@ -337,7 +338,7 @@ attributes #0 = { noinline }
 !2 = distinct !{!2, !"_ZN8__main__3addB2v2B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dEdd"}
 !3 = !{!"branch_weights", i32 1, i32 99}
 !4 = !{!"branch_weights", i32 99, i32 1}
-"""
+"""  # noqa: E501
 
 
 if __name__ == '__main__':
