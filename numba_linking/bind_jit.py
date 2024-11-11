@@ -25,6 +25,7 @@ class FuncData(typing.NamedTuple):
     func_args_str: str
     func_p: int
     func_py: types.FunctionType
+    ns: dict
 
 
 def get_func_data(func, sig, jit_options):
@@ -41,12 +42,14 @@ def get_func_data(func, sig, jit_options):
     func_args_str = ', '.join(func_args)
     func_jit_str = f"{func_name}_jit = numba.njit({func_name}_sig, **{func_name}_jit_options)({func_name}_py)"
     func_jit_code = compile(func_jit_str, inspect.getfile(func_py), mode='exec')
-    globals()[f'{func_name}_sig'] = sig
-    globals()[f'{func_name}_jit_options'] = jit_options
-    globals()[f'{func_name}_py'] = func_py
-    exec(func_jit_code, globals())
-    func_p = _get_wrapper_address(globals()[f'{func_name}_jit'], sig)
-    return FuncData(func_name, func_args_str, func_p, func_py)
+    module = inspect.getmodule(func_py)
+    ns = module.__dict__
+    ns[f'{func_name}_sig'] = sig
+    ns[f'{func_name}_jit_options'] = jit_options
+    ns[f'{func_name}_py'] = func_py
+    exec(func_jit_code, ns)
+    func_p = _get_wrapper_address(ns[f'{func_name}_jit'], sig)
+    return FuncData(func_name, func_args_str, func_p, func_py, ns)
 
 
 def bind_jit(sig, **jit_options):
@@ -59,9 +62,9 @@ def bind_jit(sig, **jit_options):
         ret_type = repr(sig.return_type)
         arg_types = [repr(arg) for arg in sig.args]
         for ty in chain([ret_type], arg_types):
-            if ty not in globals():
+            if ty not in func_data.ns:
                 if hasattr(numba, ty):
-                    globals()[ty] = getattr(numba, ty)
+                    func_data.ns[ty] = getattr(numba, ty)
                 else:
                     raise RuntimeError(f"Undefined type")
         sig_str = f"{ret_type}({', '.join(arg_types)})"
@@ -83,7 +86,10 @@ def {func_data.func_name}__({func_data.func_args_str}):
     return _{func_data.func_name}({func_data.func_args_str})
 """
         code_obj = compile(code_str, inspect.getfile(func_data.func_py), mode='exec')
-        exec(code_obj, globals())
-        func_wrap = globals()[f"{func_data.func_name}__"]
+        func_data.ns['intrinsic'] = intrinsic
+        func_data.ns['ir'] = ir
+        func_data.ns['cgutils'] = cgutils
+        exec(code_obj, func_data.ns)
+        func_wrap = func_data.ns[f"{func_data.func_name}__"]
         return func_wrap
     return wrap
