@@ -2,3 +2,5 @@ venv/*
 **/__pycache__/*
 .idea/*
 .DS_Store
+build/*
+numba_linking.egg-info/*
