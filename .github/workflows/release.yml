@@ -18,6 +18,18 @@ jobs:
         with:
           python-version: ">=3.9"
 
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            BUILD_VERSION="0.1.${{ github.run_number }}"
+            echo "VERSION=${BUILD_VERSION}" >> $GITHUB_ENV
+          fi
+      - name: Write version to __init__.py
+        run: echo "__version__ = '${{ env.VERSION }}'" > numba_linking/__init__.py
+
       - name: Build release distributions
         run: |
           python -m pip install build==1.2.2.post1 wheel==0.45.0

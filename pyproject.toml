@@ -7,7 +7,7 @@ packages = ["numba_linking"]
 
 [project]
 name = "numba_linking"
-version = "0.0.1"
+dynamic = ["version"]
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 keywords = ["llvmlite", "numba", "numpy"]
@@ -18,3 +18,4 @@ readme = 'README.md'
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+version = {attr = "numba_linking.__version__"}
