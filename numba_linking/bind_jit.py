@@ -65,6 +65,7 @@ def repr_of_type(ty, ns):
         for k, v in ns.items():
             if ty == v:
                 return repr(k).strip("'").strip('"')
+        raise RuntimeError(f"Unknown type {ty}, maybe add it to global namespace?")
     else:
         raise RuntimeError(f"Unknown type {ty}")
 
