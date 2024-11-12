@@ -2,6 +2,7 @@ import ctypes
 import numba
 
 from numba_linking.bind_jit import bind_jit, get_func_data, make_code_str
+from test.aux_structrefs import S1, S1Type
 
 
 calculate_sig = numba.float64(numba.float64, numba.float64)
@@ -177,6 +178,26 @@ def test_make_code_str():
     assert code_str == code_str_ref
 
 
+aux_8_sig = numba.float64(S1Type)
+
+
+@bind_jit(aux_8_sig)
+def aux_8(s):
+    return s.x1 + s.x2 + s.x3 + egg
+
+
+@numba.njit(aux_8_sig)
+def run8(s):
+    return 3.14 * aux_8(s)
+
+
+def test_jit_func_7():
+    s1 = S1(1, 1, 1)
+    _ = run8(s1)
+    run_8_llvm = next(iter(aux_8.inspect_llvm().values()))
+    assert str(egg) not in run_8_llvm
+
+
 if __name__ == '__main__':
     test_njit()
     test_bind_jit()
@@ -189,5 +210,6 @@ if __name__ == '__main__':
     test_jit_func_4()
     test_jit_func_5()
     test_jit_func_6()
+    test_jit_func_7()
 
     test_make_code_str()

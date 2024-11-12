@@ -6,7 +6,6 @@ import numba
 import random
 import string
 import types
-from itertools import chain
 from llvmlite import ir
 from numba.core import cgutils
 from numba.extending import intrinsic
@@ -57,16 +56,23 @@ def get_func_data(func, sig, jit_options=None):
     return FuncData(func_name, func_args_str, func_p, func_py, ns)
 
 
-def populate_ns(ret_type: str, arg_types: typing.List[str], ns: typing.Dict):
+def repr_of_type(ty, ns):
+    ty_name = repr(ty)
+    if hasattr(numba, ty_name):
+        ns[ty_name] = ty
+        return ty_name
+    elif isinstance(ty, numba.core.types.StructRef):
+        for k, v in ns.items():
+            if ty == v:
+                return repr(k).strip("'").strip('"')
+    else:
+        raise RuntimeError(f"Unknown type {ty}")
+
+
+def populate_ns(ns: typing.Dict):
     ns['intrinsic'] = intrinsic
     ns['ir'] = ir
     ns['cgutils'] = cgutils
-    for ty in chain([ret_type], arg_types):
-        if ty not in ns:
-            if hasattr(numba, ty):
-                ns[ty] = getattr(numba, ty)
-            else:
-                raise RuntimeError("Undefined type")
 
 
 func_sfx = '__'
@@ -104,9 +110,9 @@ def bind_jit(sig, **jit_options):
     def wrap(func):
         func_data = get_func_data(func, sig, jit_options)
         ll.add_symbol(func_data.func_name, func_data.func_p)
-        ret_type = repr(sig.return_type)
-        arg_types = [repr(arg) for arg in sig.args]
-        populate_ns(ret_type, arg_types, func_data.ns)
+        populate_ns(func_data.ns)
+        ret_type = repr_of_type(sig.return_type, func_data.ns)
+        arg_types = [repr_of_type(arg, func_data.ns) for arg in sig.args]
         sig_str = f"{ret_type}({', '.join(arg_types)})"
         code_str = make_code_str(func_data.func_name, func_data.func_args_str, sig_str)
         code_obj = compile(code_str, inspect.getfile(func_data.func_py), mode='exec')
