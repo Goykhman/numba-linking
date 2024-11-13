@@ -1,11 +1,10 @@
 import inspect
-import typing
-
 import llvmlite.binding as ll
 import numba
 import random
 import string
 import types
+import typing
 from llvmlite import ir
 from numba.core import cgutils
 from numba.extending import intrinsic
@@ -30,6 +29,12 @@ class FuncData(typing.NamedTuple):
     ns: dict
 
 
+PY_SFX = '_py'
+SIG_SFX = '_sig'
+JIT_OPTS_SFX = '_jit_options'
+JIT_SFX = '_jit'
+
+
 def get_func_data(func, sig, jit_options=None):
     if jit_options is None:
         jit_options = {}
@@ -44,15 +49,15 @@ def get_func_data(func, sig, jit_options=None):
     func_name = f"{func_py.__name__}{random_string(random_name_substr_len)}"
     func_args = inspect.getfullargspec(func_py).args
     func_args_str = ', '.join(func_args)
-    func_jit_str = f"{func_name}_jit = numba.njit({func_name}_sig, **{func_name}_jit_options)({func_name}_py)"
+    func_jit_str = f"{func_name}{JIT_SFX} = numba.njit({func_name}{SIG_SFX}, **{func_name}{JIT_OPTS_SFX})({func_name}{PY_SFX})"  # noqa: E501
     func_jit_code = compile(func_jit_str, inspect.getfile(func_py), mode='exec')
     module = inspect.getmodule(func_py)
     ns = module.__dict__
-    ns[f'{func_name}_sig'] = sig
-    ns[f'{func_name}_jit_options'] = jit_options
-    ns[f'{func_name}_py'] = func_py
+    ns[f'{func_name}{SIG_SFX}'] = sig
+    ns[f'{func_name}{JIT_OPTS_SFX}'] = jit_options
+    ns[f'{func_name}{PY_SFX}'] = func_py
     exec(func_jit_code, ns)
-    func_p = _get_wrapper_address(ns[f'{func_name}_jit'], sig)
+    func_p = _get_wrapper_address(ns[f'{func_name}{JIT_SFX}'], sig)
     return FuncData(func_name, func_args_str, func_p, func_py, ns)
 
 
