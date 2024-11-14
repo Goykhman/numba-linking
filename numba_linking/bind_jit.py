@@ -75,20 +75,6 @@ def get_func_data(func, sig, jit_options=None):
     return FuncData(func_name, func_args_str, func_p, func_py, ns)
 
 
-def repr_of_type(ty, ns):
-    ty_name = repr(ty)
-    if hasattr(numba, ty_name):
-        check_and_populate_ns(ty_name, ty, ns)
-        return ty_name
-    elif isinstance(ty, numba.core.types.StructRef):
-        for k, v in ns.items():
-            if ty == v:
-                return repr(k).strip("'").strip('"')
-        raise RuntimeError(f"Unknown type {ty}, maybe add it to global namespace?")
-    else:
-        raise RuntimeError(f"Unknown type {ty}")
-
-
 def populate_ns_imports(ns: typing.Dict):
     ns['intrinsic'] = intrinsic
     ns['ir'] = ir
@@ -101,7 +87,7 @@ func_sfx = '__'
 code_str_template = f"""
 @intrinsic
 def _{{func_name}}(typingctx, {{func_args_str}}):
-    sig = {{sig_str}}
+    sig = {{func_name}}{SIG_SFX}
     def codegen(context, builder, signature, args):
         func_t = ir.FunctionType(
             context.get_value_type(sig.return_type),
@@ -117,9 +103,9 @@ def {{func_name}}{func_sfx}({{func_args_str}}):
 """
 
 
-def make_code_str(func_name, func_args_str, sig_str):
+def make_code_str(func_name, func_args_str):
     return code_str_template.format(
-        func_name=func_name, func_args_str=func_args_str, sig_str=sig_str
+        func_name=func_name, func_args_str=func_args_str
     )
 
 
@@ -131,10 +117,7 @@ def bind_jit(sig, **jit_options):
         func_data = get_func_data(func, sig, jit_options)
         ll.add_symbol(func_data.func_name, func_data.func_p)
         populate_ns_imports(func_data.ns)
-        ret_type = repr_of_type(sig.return_type, func_data.ns)
-        arg_types = [repr_of_type(arg, func_data.ns) for arg in sig.args]
-        sig_str = f"{ret_type}({', '.join(arg_types)})"
-        code_str = make_code_str(func_data.func_name, func_data.func_args_str, sig_str)
+        code_str = make_code_str(func_data.func_name, func_data.func_args_str)
         code_obj = compile(code_str, inspect.getfile(func_data.func_py), mode='exec')
         exec(code_obj, func_data.ns)
         func_wrap = func_data.ns[f"{func_data.func_name}{func_sfx}"]

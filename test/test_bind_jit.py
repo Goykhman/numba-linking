@@ -157,7 +157,7 @@ def _asserts(func_data, func, assert_py_func=True):
 code_str_ref = """
 @intrinsic
 def _calculation(typingctx, x, y):
-    sig = float64(float64, int32)
+    sig = calculation_sig
     def codegen(context, builder, signature, args):
         func_t = ir.FunctionType(
             context.get_value_type(sig.return_type),
@@ -174,7 +174,7 @@ def calculation__(x, y):
 
 
 def test_make_code_str():
-    code_str = make_code_str("calculation", "x, y", "float64(float64, int32)")
+    code_str = make_code_str("calculation", "x, y")
     assert code_str == code_str_ref
 
 
