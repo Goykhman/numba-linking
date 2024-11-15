@@ -1,6 +1,6 @@
 import ctypes
 import numba
-
+from collections import namedtuple
 from numba_linking.bind_jit import bind_jit, get_func_data, make_code_str
 from test.aux_structrefs import S1, S1Type
 
@@ -88,7 +88,7 @@ def aux_2(x, y):
     return x + y
 
 
-def test_jit_func_1():
+def test_jit_func_2():
     func_data = get_func_data(aux_2, sig)
     _asserts(func_data, aux_2, assert_py_func=False)
 
@@ -98,7 +98,7 @@ def aux_3(x, y):
     return x + y
 
 
-def test_jit_func_2():
+def test_jit_func_3():
     func_data = get_func_data(aux_3, sig)
     _asserts(func_data, aux_3, assert_py_func=False)
 
@@ -108,7 +108,7 @@ def aux_4(x, y):
     return x + y
 
 
-def test_jit_func_3():
+def test_jit_func_4():
     func_data = get_func_data(aux_4, sig)
     _asserts(func_data, aux_4, assert_py_func=False)
 
@@ -118,7 +118,7 @@ def aux_5(x, y):
     return x + y
 
 
-def test_jit_func_4():
+def test_jit_func_5():
     func_data = get_func_data(aux_5, sig)
     _asserts(func_data, aux_5, assert_py_func=False)
 
@@ -128,7 +128,7 @@ def aux_6(x, y):
     return x + y
 
 
-def test_jit_func_5():
+def test_jit_func_6():
     func_data = get_func_data(aux_6, sig)
     _asserts(func_data, aux_6, assert_py_func=False)
 
@@ -138,7 +138,7 @@ def aux_7(x, y):
     return x + y
 
 
-def test_jit_func_6():
+def test_jit_func_7():
     func_data = get_func_data(aux_7, sig)
     _asserts(func_data, aux_7, assert_py_func=False)
 
@@ -167,7 +167,7 @@ def _calculation(typingctx, x, y):
         return builder.call(calculation_, args)
     return sig, codegen
 
-@numba.njit
+@numba.njit(calculation_sig)
 def calculation__(x, y):
     return _calculation(x, y)
 """
@@ -175,6 +175,7 @@ def calculation__(x, y):
 
 def test_make_code_str():
     code_str = make_code_str("calculation", "x, y")
+    print(code_str)
     assert code_str == code_str_ref
 
 
@@ -191,11 +192,27 @@ def run8(s):
     return 3.14 * aux_8(s)
 
 
-def test_jit_func_7():
+def test_jit_func_8():
     s1 = S1(1, 1, 1)
     _ = run8(s1)
     run_8_llvm = next(iter(aux_8.inspect_llvm().values()))
     assert str(egg) not in run_8_llvm
+
+
+a_tuple = namedtuple('a_tuple', ['x', 'y'])
+a_tup_1 = a_tuple(3.14, 137)
+a_tuple_ty = numba.typeof(a_tup_1)
+
+aux_9_sig = numba.float64(a_tuple_ty)
+
+
+@bind_jit(aux_9_sig)
+def aux_9(t):
+    return t.x + 2.1728 * t.y
+
+
+def test_namedtuple():
+    assert "declare double @aux" in next(iter(aux_9.inspect_llvm().values()))
 
 
 if __name__ == '__main__':
@@ -204,12 +221,14 @@ if __name__ == '__main__':
     test_bind_jit_of_njit()
 
     test_py_func()
-    test_jit_func_1()
-    test_jit_func_2()
-    test_jit_func_3()
-    test_jit_func_4()
-    test_jit_func_5()
-    test_jit_func_6()
-    test_jit_func_7()
+    test_jit_func_8()
+    test_jit_func_8()
+    test_jit_func_8()
+    test_jit_func_8()
+    test_jit_func_8()
+    test_jit_func_8()
+    test_jit_func_8()
 
     test_make_code_str()
+
+    test_namedtuple()

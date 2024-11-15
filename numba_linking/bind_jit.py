@@ -97,7 +97,7 @@ def _{{func_name}}(typingctx, {{func_args_str}}):
         return builder.call({{func_name}}_, args)
     return sig, codegen
 
-@numba.njit
+@numba.njit({{func_name}}{SIG_SFX})
 def {{func_name}}{func_sfx}({{func_args_str}}):
     return _{{func_name}}({{func_args_str}})
 """
