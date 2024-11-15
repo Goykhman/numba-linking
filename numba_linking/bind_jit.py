@@ -1,8 +1,6 @@
 import inspect
 import llvmlite.binding as ll
 import numba
-import random
-import string
 import types
 import typing
 from llvmlite import ir
@@ -17,12 +15,9 @@ PY_SFX = '_py'
 SIG_SFX = '_sig'
 JIT_OPTS_SFX = '_jit_options'
 JIT_SFX = '_jit'
+BIND_JIT_SFX = '_BIND_JIT_SFX'
 
 random_name_substr_len = 20
-
-
-def random_string(n):
-    return ''.join(random.choices(string.ascii_letters, k=n))
 
 
 class FuncData(typing.NamedTuple):
@@ -64,7 +59,7 @@ def extract_py_func(func):
 def get_func_data(func, sig, jit_options=None):
     jit_options = {} if jit_options is None else jit_options
     func_py = extract_py_func(func)
-    func_name = f"{func_py.__name__}{random_string(random_name_substr_len)}"
+    func_name = f"{func_py.__name__}{BIND_JIT_SFX}"
     func_args = inspect.getfullargspec(func_py).args
     func_args_str = ', '.join(func_args)
     func_jit_str = f"{func_name}{JIT_SFX} = numba.njit({func_name}{SIG_SFX}, **{func_name}{JIT_OPTS_SFX})({func_name}{PY_SFX})"  # noqa: E501
