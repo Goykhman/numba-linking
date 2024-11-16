@@ -231,6 +231,7 @@ def test_global_ns():
     jit_func_ = f"{func_name_sfx}{JIT_SFX}"
     intrinsic_ = f"_{func_name_sfx}"
     declare_func_ = f"{func_name_sfx}{func_sfx}"
+    assert aux_10 is globals()[declare_func_]
     assert globals()[sig_] == numba.float64()
     assert globals()[jit_options_] == {'inline': 'never', 'cache': True}
     assert isinstance(globals()[py_func_], types.FunctionType)
@@ -240,7 +241,7 @@ def test_global_ns():
     assert globals()[jit_func_].py_func == globals()[py_func_]
     declare_llvm = next(iter(globals()[declare_func_].inspect_llvm().values()))
     assert f"ModuleID = '{declare_func_}'" in declare_llvm
-    assert f"declare double @{func_name}{BIND_JIT_SFX}() local_unnamed_addr" in declare_llvm
+    assert f"declare double @{func_name_sfx}() local_unnamed_addr" in declare_llvm
     assert str(egg) not in declare_llvm
     define_llvm = next(iter(globals()[jit_func_].inspect_llvm().values()))
     assert f"ModuleID = '{func_name}'" in define_llvm
@@ -264,3 +265,4 @@ if __name__ == '__main__':
     test_make_code_str()
 
     test_namedtuple()
+    test_global_ns()
