@@ -169,7 +169,7 @@ def _calculation(typingctx, x, y):
         return builder.call(calculation_, args)
     return sig, codegen
 
-@numba.njit(calculation_sig)
+@numba.njit(calculation_sig, **calculation_jit_options)
 def calculation__(x, y):
     return _calculation(x, y)
 """
@@ -177,7 +177,6 @@ def calculation__(x, y):
 
 def test_make_code_str():
     code_str = make_code_str("calculation", "x, y")
-    print(code_str)
     assert code_str == code_str_ref
 
 
@@ -238,6 +237,7 @@ def test_global_ns():
     assert isinstance(globals()[jit_func_], numba.core.registry.CPUDispatcher)
     assert isinstance((globals()[intrinsic_]), numba.core.extending._Intrinsic)
     assert isinstance(globals()[declare_func_], numba.core.registry.CPUDispatcher)
+    assert globals()[jit_func_].py_func == globals()[py_func_]
     declare_llvm = next(iter(globals()[declare_func_].inspect_llvm().values()))
     assert f"ModuleID = '{declare_func_}'" in declare_llvm
     assert f"declare double @{func_name}{BIND_JIT_SFX}() local_unnamed_addr" in declare_llvm
@@ -245,7 +245,6 @@ def test_global_ns():
     define_llvm = next(iter(globals()[jit_func_].inspect_llvm().values()))
     assert f"ModuleID = '{func_name}'" in define_llvm
     assert str(egg) in define_llvm
-    print(define_llvm)
 
 
 if __name__ == '__main__':
