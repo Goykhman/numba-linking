@@ -1,4 +1,6 @@
 import ctypes
+import types
+
 import numba
 from collections import namedtuple
 from numba_linking.bind_jit import bind_jit, get_func_data, make_code_str
@@ -213,6 +215,37 @@ def aux_9(t):
 
 def test_namedtuple():
     assert "declare double @aux" in next(iter(aux_9.inspect_llvm().values()))
+
+
+@bind_jit(numba.float64(), inline='never', cache=True)
+def aux_10():
+    return egg
+
+
+def test_global_ns():
+    func_name = "aux_10"
+    from numba_linking.bind_jit import BIND_JIT_SFX, func_sfx, JIT_OPTS_SFX, JIT_SFX, PY_SFX, SIG_SFX
+    func_name_sfx = f"{func_name}{BIND_JIT_SFX}"
+    sig_ = f"{func_name_sfx}{SIG_SFX}"
+    jit_options_ = f"{func_name_sfx}{JIT_OPTS_SFX}"
+    py_func_ = f"{func_name_sfx}{PY_SFX}"
+    jit_func_ = f"{func_name_sfx}{JIT_SFX}"
+    intrinsic_ = f"_{func_name_sfx}"
+    declare_func_ = f"{func_name_sfx}{func_sfx}"
+    assert globals()[sig_] == numba.float64()
+    assert globals()[jit_options_] == {'inline': 'never', 'cache': True}
+    assert isinstance(globals()[py_func_], types.FunctionType)
+    assert isinstance(globals()[jit_func_], numba.core.registry.CPUDispatcher)
+    assert isinstance((globals()[intrinsic_]), numba.core.extending._Intrinsic)
+    assert isinstance(globals()[declare_func_], numba.core.registry.CPUDispatcher)
+    declare_llvm = next(iter(globals()[declare_func_].inspect_llvm().values()))
+    assert f"ModuleID = '{declare_func_}'" in declare_llvm
+    assert f"declare double @{func_name}{BIND_JIT_SFX}() local_unnamed_addr" in declare_llvm
+    assert str(egg) not in declare_llvm
+    define_llvm = next(iter(globals()[jit_func_].inspect_llvm().values()))
+    assert f"ModuleID = '{func_name}'" in define_llvm
+    assert str(egg) in define_llvm
+    print(define_llvm)
 
 
 if __name__ == '__main__':
